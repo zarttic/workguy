@@ -71,12 +71,26 @@ def init_color_pairs(curses_module, color_count: int) -> dict[str, int]:
     else:
         fg_for = _BASE_COLORS
 
+    # 颜色对数量上限。部分终端（尤其 Windows）只有 64 对，
+    # 超出范围时 init_pair 会返回 ERR，所以要逐项防御。
+    try:
+        max_pairs = curses_module.COLOR_PAIRS
+    except Exception:  # pragma: no cover - mock 未必提供
+        max_pairs = 64
+
     pairs: dict[str, int] = {}
     for name in SEMANTIC_NAMES:
         pair_id = PAIR_IDS[name]
         fg = fg_for[name]
-        curses_module.init_pair(pair_id, fg, 0)
-        pairs[name] = pair_id
+        # 单项失败只让该项退化为默认色，不能连累整组
+        if pair_id >= max_pairs:
+            pairs[name] = 0
+            continue
+        try:
+            curses_module.init_pair(pair_id, fg, 0)
+            pairs[name] = pair_id
+        except Exception:
+            pairs[name] = 0
     return pairs
 
 

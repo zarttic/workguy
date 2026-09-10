@@ -113,12 +113,36 @@ class TuiApp:
 
     # ------------------------------------------------------------------ 主循环
     def _main(self, stdscr) -> int:
-        # 终端初始化
-        curses.curs_set(1)  # 显示光标（输入行需要）
-        self._has_color = curses.has_colors()
-        if self._has_color:
-            self._pairs = init_color_pairs(curses, curses.COLORS)
-        else:
+        # 终端初始化。
+        # curs_set 并非所有终端都支持（部分 Windows 控制台会抛错），
+        # 光标显示只是体验优化，失败不该影响启动。
+        try:
+            curses.curs_set(1)  # 显示光标（输入行需要）
+        except curses.error:
+            pass
+
+        # 颜色初始化。
+        #
+        # 关键：**必须先调用 curses.start_color()**。
+        # curses 的规则是 init_pair() 只能在 start_color() 之后调用，否则返回 ERR；
+        # 而且 COLORS 在 start_color() 之前读到的是 0。这里曾漏掉 start_color()，
+        # 导致真实终端里直接抛 `init_pair() returned ERR`。
+        #
+        # 另外颜色只是增强，初始化失败必须降级为无色模式，不能让整个 TUI 崩掉。
+        self._has_color = False
+        self._pairs = {name: 0 for name in PAIR_IDS}
+        try:
+            if curses.has_colors():
+                curses.start_color()
+                try:
+                    # 允许背景色使用终端默认色（-1），避免强刷黑底
+                    curses.use_default_colors()
+                except curses.error:
+                    pass  # 部分终端不支持，忽略即可
+                self._has_color = True
+                self._pairs = init_color_pairs(curses, curses.COLORS)
+        except curses.error:
+            self._has_color = False
             self._pairs = {name: 0 for name in PAIR_IDS}
         stdscr.leaveok(False)
         stdscr.keypad(True)

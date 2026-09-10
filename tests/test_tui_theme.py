@@ -160,5 +160,55 @@ class TestInitColorPairs(unittest.TestCase):
         self.assertNotIn("curses", sys.modules or {})
 
 
+class TestColorPairRobustness(unittest.TestCase):
+    """颜色初始化的健壮性 —— 单项失败不能拖垮整组。
+
+    这组测试是**真实故障驱动**的：曾经因为 app.py 漏调 curses.start_color()，
+    真实终端里直接抛 `init_pair() returned ERR`，整个 TUI 起不来。
+    """
+
+    def test_init_pair_failure_degrades_only_that_entry(self):
+        """单项 init_pair 失败时，只让该项退化为 0，其他项照常。"""
+
+        class FailingCurses(MockCurses):
+            def init_pair(self, pair_id: int, fg: int, bg: int) -> None:
+                if pair_id == PAIR_IDS["error"]:
+                    raise Exception("init_pair() returned ERR")
+                super().init_pair(pair_id, fg, bg)
+
+        result = theme_mod.init_color_pairs(FailingCurses(), 256)
+        self.assertEqual(result["error"], 0, "失败项应退化为 0（默认色）")
+        self.assertEqual(
+            result["brand"], PAIR_IDS["brand"], "其他项不应受影响"
+        )
+
+    def test_pair_id_beyond_color_pairs_limit(self):
+        """pair_id 超出终端 COLOR_PAIRS 上限时退化为 0，不调用 init_pair。"""
+
+        class TinyCurses(MockCurses):
+            COLOR_PAIRS = 3  # 只允许 pair 1~2
+
+        curses_mock = TinyCurses()
+        result = theme_mod.init_color_pairs(curses_mock, 256)
+
+        for name, pid in PAIR_IDS.items():
+            if pid >= 3:
+                self.assertEqual(result[name], 0, f"{name} 超出上限应为 0")
+                self.assertFalse(
+                    any(c[0] == pid for c in curses_mock.calls),
+                    f"{name} 不该真的调用 init_pair",
+                )
+
+    def test_color_pairs_missing_falls_back_to_64(self):
+        """mock 没提供 COLOR_PAIRS 时按 64 处理，不应崩溃。"""
+
+        class NoLimitCurses(MockCurses):
+            pass
+
+        # MockCurses 本身没有 COLOR_PAIRS 属性，走 except 分支
+        result = theme_mod.init_color_pairs(NoLimitCurses(), 256)
+        self.assertEqual(result["brand"], PAIR_IDS["brand"])
+
+
 if __name__ == "__main__":
     unittest.main()
