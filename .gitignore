@@ -1,0 +1,47 @@
+# —— Python ——
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# —— 虚拟环境 ——
+.venv/
+venv/
+env/
+ENV/
+
+# —— 本地数据库与运行时产物 ——
+*.db
+*.db-shm
+*.db-wal
+*.sqlite3
+
+# —— 测试与工具缓存 ——
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# —— 编辑器与系统 ——
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# —— 日志 ——
+*.log
+
+# —— 本地密钥：绝不入库 ——
+# WorkGuy 从环境变量读 key（LONGCAT_API_KEY 等），
+# 下面这些是兜底，防止误提交任何本地凭据文件。
+.env
+.env.*
+*.key
+secrets.json

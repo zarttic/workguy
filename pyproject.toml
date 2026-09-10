@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "workguy"
+description = "一个可运行的 Agent 内核骨架：Python 3.13 + 标准库，零第三方依赖。"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "WorkGuy Contributors" }]
+keywords = ["agent", "llm", "kernel", "workguy", "ai"]
+dynamic = ["version"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+# 零第三方依赖是本项目设计原则，dependencies 必须保持为空。
+dependencies = []
+
+[project.urls]
+Homepage = "https://example.com/workguy"
+Repository = "https://example.com/workguy"
+
+[project.scripts]
+workguy = "workguy.__main__:main"
+
+[project.optional-dependencies]
+# 仅声明，不强制安装；做开发时按需 pip install -e ".[dev]"
+dev = ["pytest>=7.0"]
+
+# 版本单一来源：workguy/__init__.py 的 __version__，避免重复维护。
+[tool.setuptools.dynamic]
+version = { attr = "workguy.__version__" }
+
+# 包发现：自动找到带 __init__.py 的 workguy/ 包。
+[tool.setuptools.packages.find]
+include = ["workguy*"]
